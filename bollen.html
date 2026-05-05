@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bollen">
+<title>Bollen 🃏</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a2e;color:#eee;min-height:100vh;padding:1rem;padding-bottom:2rem}
+.screen{display:none}.screen.active{display:block}
+h1{font-size:26px;font-weight:700;color:#4CAF50;text-align:center;margin-bottom:0.25rem;letter-spacing:1px}
+.subtitle{text-align:center;font-size:13px;color:#666;margin-bottom:1.5rem}
+.card-ui{background:#252538;border-radius:16px;padding:1.25rem;margin-bottom:1rem;border:1px solid #333}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:0.75rem;transition:opacity 0.1s}
+.btn:active{opacity:0.8}
+.btn.green{background:#2d6a2d;color:white}
+.btn.outline{background:transparent;color:#4CAF50;border:2px solid #4CAF50}
+.btn.gray{background:#333;color:#aaa;border:1px solid #444}
+.btn.red{background:#6a1a1a;color:#ff9999;border:1px solid #8B0000}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+input{width:100%;padding:13px;border:1px solid #444;border-radius:10px;font-size:18px;background:#1a1a2e;color:#eee;margin-bottom:0.75rem;text-align:center;letter-spacing:3px;outline:none}
+input:focus{border-color:#4CAF50}
+input::placeholder{letter-spacing:0;color:#555;font-size:15px}
+label{font-size:13px;color:#777;display:block;margin-bottom:5px;text-align:left}
+.code-display{font-size:52px;font-weight:700;color:#4CAF50;text-align:center;letter-spacing:10px;padding:1rem 0;font-variant-numeric:tabular-nums}
+.player-list{list-style:none}
+.player-list li{padding:11px 14px;background:#1a1a2e;border-radius:8px;margin-bottom:6px;font-size:15px;display:flex;align-items:center;gap:10px;border:1px solid #2a2a3e}
+.player-list li .dot{width:9px;height:9px;border-radius:50%;background:#4CAF50;flex-shrink:0}
+.status{text-align:center;font-size:13px;color:#777;margin:0.5rem 0}
+.info-bar{background:#1a1a2e;border-radius:8px;padding:8px 12px;font-size:12px;color:#777;margin-bottom:0.5rem;display:flex;gap:12px;flex-wrap:wrap;border:1px solid #2a2a3e}
+.info-bar strong{color:#eee}
+.hand-row{display:flex;flex-wrap:wrap;gap:6px;margin:0.75rem 0}
+.c{display:inline-flex;align-items:center;justify-content:center;width:52px;height:74px;border-radius:8px;border:1px solid #444;background:#2a2a3e;font-size:22px;font-weight:700;flex-direction:column;gap:0;cursor:pointer;transition:transform 0.12s,border-color 0.12s,box-shadow 0.12s;user-select:none}
+.c span{font-size:12px;font-weight:500}
+.c:active{transform:translateY(-7px)}
+.c.ill{opacity:0.2;cursor:default;transform:none!important}
+.c.red{color:#e74c3c}
+.c.blk{color:#eee}
+.c.playable{border-color:#4CAF50;box-shadow:0 0 10px rgba(76,175,80,0.35)}
+.bid-btn{width:54px;height:54px;border:2px solid #444;border-radius:10px;background:#1a1a2e;color:#eee;cursor:pointer;font-size:19px;font-weight:600;transition:background 0.1s,border-color 0.1s,box-shadow 0.1s}
+.bid-btn.selected{background:#2d6a2d;color:white;border-color:#4CAF50;box-shadow:0 0 0 3px rgba(76,175,80,0.3)}
+.bid-btn:disabled{opacity:0.25;cursor:not-allowed}
+.tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;background:#2a2a3e;border:1px solid #444;color:#bbb}
+.tag.green{background:#1e3a1e;border-color:#4CAF50;color:#4CAF50}
+.score-table{width:100%;border-collapse:collapse;font-size:12px}
+.score-table th{padding:7px 4px;text-align:center;border-bottom:1px solid #444;color:#eee;font-weight:700;font-size:13px}
+.score-table th:first-child{text-align:left}
+.score-table td{padding:6px 4px;text-align:center;border-bottom:1px solid #2a2a3e;color:#bbb}
+.score-table td:first-child{text-align:left;font-weight:500;color:#eee}
+.score-table td.total{font-weight:700;color:#4CAF50}
+.bol{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #e74c3c}
+.bol-cell{cursor:pointer;position:relative}
+.bol-tooltip{display:none;position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:#252538;border:1px solid #555;border-radius:8px;padding:5px 9px;font-size:11px;white-space:nowrap;z-index:20;color:#eee;pointer-events:none}
+.bol-cell:hover .bol-tooltip,.bol-cell.tip-open .bol-tooltip{display:block}
+.verliezaar-box{background:#1a0505;border:1px solid #6a1a1a;border-radius:14px;padding:1.5rem;text-align:center;margin-bottom:1rem}
+.verliezaar-naam{font-size:28px;font-weight:700;color:#e74c3c;letter-spacing:0.12em;margin:0.5rem 0}
+.other-players{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:0.5rem}
+.other-player-card{background:#1a1a2e;border-radius:8px;padding:9px 10px;border:1px solid #2a2a3e;font-size:12px}
+.other-player-card.active-p{border-color:#4CAF50;background:#0d1f0d}
+.other-player-card .pname{font-weight:600;font-size:13px;margin-bottom:3px;color:#eee}
+.waiting-msg{text-align:center;padding:1.5rem;color:#666;font-size:14px}
+.flex-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.trick-area{min-height:80px;background:#1a1a2e;border-radius:10px;padding:0.6rem;margin-bottom:0.5rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #2a2a3e}
+.trick-card{display:inline-flex;align-items:center;justify-content:center;width:46px;height:64px;border-radius:7px;border:1px solid #555;background:#2a2a3e;font-size:18px;font-weight:700;flex-direction:column;gap:0}
+.trick-card span{font-size:11px;font-weight:500}
+.trick-card.red{color:#e74c3c}
+.trick-card.blk{color:#eee}
+.trick-player-label{font-size:10px;color:#666;text-align:center;margin-top:2px}
+.trick-wrap{display:flex;flex-direction:column;align-items:center}
+.divider{height:1px;background:#2a2a3e;margin:0.75rem 0}
+</style>
+</head>
+<body>
+
+<div id="home-screen" class="screen active">
+  <h1>🃏 Bollen</h1>
+  <p class="subtitle">Het kaartspel</p>
+  <div class="card-ui">
+    <label>Jouw naam</label>
+    <input id="home-name" placeholder="Voer je naam in" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="btn green" onclick="createGame()">Nieuw spel aanmaken</button>
+    <div class="divider"></div>
+    <button class="btn outline" onclick="showScreen('join-screen')">Bestaand spel joinen</button>
+  </div>
+</div>
+
+<div id="join-screen" class="screen">
+  <h1>🃏 Bollen</h1>
+  <p class="subtitle">Spel joinen</p>
+  <div class="card-ui">
+    <label>Jouw naam</label>
+    <input id="join-name" placeholder="Voer je naam in" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false">
+    <label>Spelcode (4 cijfers)</label>
+    <input id="join-code" placeholder="0000" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+    <button class="btn green" onclick="joinGame()">Joinen</button>
+    <button class="btn gray" onclick="showScreen('home-screen')">Terug</button>
+  </div>
+</div>
+
+<div id="lobby-screen" class="screen">
+  <h1>🃏 Bollen</h1>
+  <p class="subtitle">Wachtkamer</p>
+  <div class="card-ui">
+    <div style="text-align:center;font-size:12px;color:#666;margin-bottom:4px">Spelcode — deel dit met de andere spelers</div>
+    <div class="code-display" id="lobby-code">----</div>
+    <ul class="player-list" id="lobby-players"></ul>
+    <div class="status" id="lobby-status"></div>
+    <button class="btn green" id="start-btn" onclick="startDraw()" style="display:none">Spel starten 🎴</button>
+    <button class="btn gray" onclick="leaveGame()">Verlaten</button>
+  </div>
+</div>
+
+<div id="draw-screen" class="screen">
+  <h1>🃏 Bollen</h1>
+  <div class="card-ui">
+    <h2 style="margin-bottom:0.6rem;color:#4CAF50;font-size:18px">Wie deelt eerst?</h2>
+    <p style="font-size:13px;color:#777;margin-bottom:1rem">Tik op de kaart om te trekken. Hoogste kaart deelt als eerste.</p>
+    <div id="draw-area"></div>
+    <div id="draw-status" class="status" style="min-height:22px;font-size:14px;font-weight:500;color:#4CAF50;margin-top:0.5rem"></div>
+    <button class="btn outline" id="draw-retry-btn" onclick="retryDraw()" style="display:none;margin-top:0.5rem">Opnieuw trekken (gelijkspel)</button>
+  </div>
+</div>
+
+<div id="bid-screen" class="screen">
+  <div class="card-ui" style="margin-bottom:0.5rem">
+    <div style="font-size:14px;font-weight:600;margin-bottom:0.4rem" id="bid-title"></div>
+    <div class="info-bar" id="bid-info"></div>
+    <div id="other-players-bid" class="other-players"></div>
+  </div>
+  <div class="card-ui" id="bid-my-panel"></div>
+</div>
+
+<div id="play-screen" class="screen">
+  <div class="card-ui" style="margin-bottom:0.5rem;padding:0.75rem">
+    <div style="font-size:14px;font-weight:600;margin-bottom:0.3rem" id="play-title"></div>
+    <div class="info-bar" id="play-info"></div>
+    <div style="font-size:12px;color:#666;margin-bottom:0.35rem">Op tafel:</div>
+    <div class="trick-area" id="trick-area"></div>
+    <div style="font-size:13px;color:#4CAF50;min-height:18px;font-weight:500" id="status-msg"></div>
+  </div>
+  <div id="other-players-play" class="other-players" style="margin-bottom:0.5rem"></div>
+  <div class="card-ui" id="play-my-panel"></div>
+</div>
+
+<div id="score-screen" class="screen">
+  <div class="card-ui">
+    <h2 style="color:#4CAF50;margin-bottom:0.75rem;font-size:18px">Scorebord</h2>
+    <div style="overflow-x:auto" id="score-content"></div>
+    <div style="margin-top:0.75rem" id="score-actions"></div>
+  </div>
+</div>
+
+<div id="final-screen" class="screen">
+  <div class="verliezaar-box" id="verliezaar-box"></div>
+  <div class="card-ui">
+    <div style="overflow-x:auto" id="final-score-content"></div>
+  </div>
+  <button class="btn green" onclick="showScreen('home-screen')">Nieuw spel</button>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, set, get, update, onValue, off, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB2K7bxA32FGp-oLOC-Hcw1qu9H0WRnwzQ",
+  authDomain: "bollen-63849.firebaseapp.com",
+  projectId: "bollen-63849",
+  databaseURL: "https://bollen-63849-default-rtdb.europe-west1.firebasedatabase.app",
+  storageBucket: "bollen-63849.firebasestorage.app",
+  messagingSenderId: "41911953309",
+  appId: "1:41911953309:web:bf5afbca63f8995a5f7174"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const SS={H:'♥',S:'♠',D:'♦',C:'♣'};
+const SN={H:'Harten',S:'Schoppen',D:'Ruiten',C:'Klaveren'};
+const RANKS=['7','8','9','10','J','Q','K','A'];
+const RV={'7':1,'8':2,'9':3,'10':4,'J':5,'Q':6,'K':7,'A':8};
+const RED=['H','D'];
+const SUITS=['H','S','D','C'];
+
+let myId=null,myName=null,gameCode=null,gameRef=null,gameListener=null,localState=null;
+
+function isRed(c){return RED.includes(c.suit)}
+
+function sfx(type){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    const t=ctx.currentTime;
+    if(type==='sel'){o.frequency.value=660;g.gain.setValueAtTime(0.07,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.start();o.stop(t+0.15);}
+    else if(type==='win'){o.frequency.setValueAtTime(523,t);o.frequency.setValueAtTime(659,t+0.1);o.frequency.setValueAtTime(784,t+0.2);g.gain.setValueAtTime(0.09,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.5);o.start();o.stop(t+0.5);}
+    else if(type==='play'){o.frequency.value=330;g.gain.setValueAtTime(0.05,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.start();o.stop(t+0.1);}
+    else if(type==='draw'){o.frequency.value=500;g.gain.setValueAtTime(0.06,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start();o.stop(t+0.18);}
+  }catch(e){}
+}
+
+function makeDeck(){
+  let d=[];
+  for(let s of SUITS)for(let r of RANKS)d.push({suit:s,rank:r});
+  for(let i=d.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+  return d;
+}
+
+function getRounds(){
+  let r=[];
+  for(let i=1;i<=5;i++)r.push({cards:i,trump:true,blind:false});
+  r.push({cards:5,trump:false,blind:false});
+  r.push({cards:5,trump:false,blind:true});
+  for(let i=4;i>=1;i--)r.push({cards:i,trump:true,blind:false});
+  return r;
+}
+
+function genId(){return Math.random().toString(36).substr(2,9)}
+function genCode(){return String(Math.floor(1000+Math.random()*9000))}
+
+window.showScreen=function(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+window.createGame=async function(){
+  myName=document.getElementById('home-name').value.trim();
+  if(!myName){alert('Voer eerst je naam in!');return;}
+  myId=genId();
+  gameCode=genCode();
+  gameRef=ref(db,`games/${gameCode}`);
+  await set(gameRef,{
+    code:gameCode,host:myId,phase:'lobby',
+    players:{[myId]:{name:myName,id:myId,order:0,bollen:0,totalCorrect:0,scores:[]}},
+    createdAt:Date.now()
+  });
+  document.getElementById('lobby-code').textContent=gameCode;
+  showScreen('lobby-screen');
+  listenToGame();
+}
+
+window.joinGame=async function(){
+  myName=document.getElementById('join-name').value.trim();
+  const code=document.getElementById('join-code').value.trim();
+  if(!myName){alert('Voer eerst je naam in!');return;}
+  if(code.length!==4){alert('Voer een geldige 4-cijferige spelcode in!');return;}
+  gameCode=code;
+  gameRef=ref(db,`games/${gameCode}`);
+  const snap=await get(gameRef);
+  if(!snap.exists()){alert('Spel niet gevonden! Controleer de code.');return;}
+  const data=snap.val();
+  if(data.phase!=='lobby'){alert('Dit spel is al begonnen!');return;}
+  myId=genId();
+  const order=Object.keys(data.players).length;
+  await update(ref(db,`games/${gameCode}/players/${myId}`),{name:myName,id:myId,order,bollen:0,totalCorrect:0,scores:[]});
+  document.getElementById('lobby-code').textContent=gameCode;
+  showScreen('lobby-screen');
+  listenToGame();
+}
+
+window.leaveGame=async function(){
+  if(gameListener&&gameRef)off(gameRef,'value',gameListener);
+  if(gameCode&&myId)await remove(ref(db,`games/${gameCode}/players/${myId}`));
+  gameCode=null;gameRef=null;myId=null;localState=null;gameListener=null;
+  showScreen('home-screen');
+}
+
+function listenToGame(){
+  if(gameListener&&gameRef)off(gameRef,'value',gameListener);
+  gameListener=onValue(gameRef,(snap)=>{
+    if(!snap.exists())return;
+    localState=snap.val();
+    renderState(localState);
+  });
+}
+
+function renderState(state){
+  const p=state.phase;
+  if(p==='lobby')renderLobby(state);
+  else if(p==='draw')renderDraw(state);
+  else if(p==='bid')renderBid(state);
+  else if(p==='play')renderPlay(state);
+  else if(p==='score')renderScore(state);
+  else if(p==='final')renderFinal(state);
+}
+
+function renderLobby(state){
+  showScreen('lobby-screen');
+  document.getElementById('lobby-code').textContent=state.code;
+  const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  document.getElementById('lobby-players').innerHTML=players.map(p=>
+    `<li><span class="dot"></span>${p.name}${p.id===state.host?' 👑':''}</li>`).join('');
+  const n=players.length;
+  const statusEl=document.getElementById('lobby-status');
+  const startBtn=document.getElementById('start-btn');
+  if(n<2){statusEl.textContent='Wacht op meer spelers... (minimaal 2)';startBtn.style.display='none';}
+  else if(n>6){statusEl.textContent='Maximaal 6 spelers!';startBtn.style.display='none';}
+  else{
+    statusEl.textContent=`${n} speler${n>1?'s':''} aanwezig`;
+    startBtn.style.display=myId===state.host?'block':'none';
+  }
+}
+
+window.startDraw=async function(){
+  const players=Object.values(localState.players).sort((a,b)=>a.order-b.order);
+  await update(gameRef,{phase:'draw',drawCards:{},drawContenders:players.map(p=>p.id),drawTied:false});
+}
+
+function renderDraw(state){
+  showScreen('draw-screen');
+  const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  const contenders=state.drawContenders||[];
+  const cards=state.drawCards||{};
+  const allDrawn=contenders.length>0&&contenders.every(id=>cards[id]);
+  let maxVal=0,winners=[];
+  if(allDrawn){
+    maxVal=Math.max(...contenders.map(id=>RV[cards[id].rank]));
+    winners=contenders.filter(id=>RV[cards[id].rank]===maxVal);
+  }
+  let html='';
+  for(let p of players){
+    const inC=contenders.includes(p.id);
+    const card=cards[p.id];
+    const isMe=p.id===myId;
+    let cardHtml='';
+    if(card){
+      const col=isRed(card)?'#e74c3c':'#eee';
+      const isWin=winners.includes(p.id);
+      const isLose=allDrawn&&inC&&!isWin;
+      cardHtml=`<div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:68px;border-radius:8px;border:2px solid ${isWin?'#4CAF50':'#555'};background:${isWin?'#1e3a1e':'#2a2a3e'};font-size:20px;font-weight:700;flex-direction:column;opacity:${isLose?0.35:1};color:${col}">${SS[card.suit]}<span style="font-size:11px">${card.rank}</span></div>`;
+    } else if(inC&&isMe){
+      cardHtml=`<div onclick="drawMyCard()" style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:68px;border-radius:8px;border:2px solid #4CAF50;background:#1a3a6e;font-size:24px;cursor:pointer;box-shadow:0 0 10px rgba(76,175,80,0.3)">?</div>`;
+    } else {
+      cardHtml=`<div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:68px;border-radius:8px;border:1px solid #333;background:${inC?'#1a3a6e':'#1a1a1a'};font-size:24px;opacity:${inC?0.7:0.25}">${inC?'?':'—'}</div>`;
+    }
+    const lbl=card?`${SS[card.suit]} ${card.rank}`:inC?(isMe?'Tik om te trekken':'Wacht...'):'—';
+    html+=`<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #2a2a3e">
+      <div style="font-size:14px;font-weight:500;min-width:85px;color:#eee">${p.name}</div>
+      ${cardHtml}
+      <div style="font-size:12px;color:#666;flex:1">${lbl}</div>
+    </div>`;
+  }
+  document.getElementById('draw-area').innerHTML=html;
+  const statusEl=document.getElementById('draw-status');
+  const retryBtn=document.getElementById('draw-retry-btn');
+  retryBtn.style.display='none';
+  if(allDrawn){
+    if(winners.length===1){
+      const wName=players.find(p=>p.id===winners[0]).name;
+      statusEl.textContent=`🎉 ${wName} deelt als eerste!`;
+      if(myId===localState.host){
+        setTimeout(async()=>{await initRound(state,winners[0]);},1800);
+      }
+    } else {
+      const names=winners.map(id=>players.find(p=>p.id===id).name).join(' en ');
+      statusEl.textContent=`Gelijkspel: ${names}!`;
+      if(myId===localState.host)retryBtn.style.display='block';
+    }
+  } else {
+    statusEl.textContent='';
+  }
+}
+
+window.drawMyCard=async function(){
+  if(!localState||localState.phase!=='draw')return;
+  const contenders=localState.drawContenders||[];
+  if(!contenders.includes(myId))return;
+  if(localState.drawCards&&localState.drawCards[myId])return;
+  const deck=makeDeck();
+  const card=deck[Math.floor(Math.random()*deck.length)];
+  sfx('draw');
+  await update(ref(db,`games/${gameCode}/drawCards`),{[myId]:card});
+}
+
+window.retryDraw=async function(){
+  const state=localState;
+  const cards=state.drawCards||{};
+  const contenders=state.drawContenders||[];
+  const maxVal=Math.max(...contenders.map(id=>RV[cards[id].rank]));
+  const tied=contenders.filter(id=>RV[cards[id].rank]===maxVal);
+  const newCards={};
+  for(let id in cards)if(!tied.includes(id))newCards[id]=cards[id];
+  await update(gameRef,{drawContenders:tied,drawCards:newCards});
+}
+
+async function initRound(state,dealerId){
+  const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  const n=players.length;
+  const rounds=getRounds();
+  const ri=state.roundIndex||0;
+  const r=rounds[ri];
+  const deck=makeDeck();
+  const hands={};
+  for(let i=0;i<n;i++)hands[players[i].id]=deck.slice(i*r.cards,(i+1)*r.cards);
+  const trump=r.trump?(deck[n*r.cards]||deck[deck.length-1]):null;
+  const fi=players.findIndex(p=>p.id===dealerId);
+  const bidOrder=[];
+  for(let i=0;i<n;i++)bidOrder.push(players[(fi+1+i)%n].id);
+  await update(gameRef,{
+    phase:'bid',dealerId,roundIndex:ri,trump:trump||null,
+    hands,bids:{},bidOrder,bidStep:0,
+    currentTrick:[],slagsWon:Object.fromEntries(players.map(p=>[p.id,0])),
+    trickWinner:null,showingTrick:false,drawCards:null,drawContenders:null
+  });
+}
+
+function renderBid(state){
+  showScreen('bid-screen');
+  const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  const rounds=getRounds();
+  const r=rounds[state.roundIndex||0];
+  const trump=state.trump;
+  const bids=state.bids||{};
+  const bidOrder=state.bidOrder||[];
+  const bidStep=state.bidStep||0;
+  const currentBidderId=bidOrder[bidStep];
+  const isMyTurn=currentBidderId===myId;
+
+  document.getElementById('bid-title').textContent=
+    `Ronde ${(state.roundIndex||0)+1} — ${r.cards} kaart${r.cards>1?'en':''}${!r.trump?' (geen troef)':''}${r.blind?' — BLIND':''}`;
+  let ih=`<span>Deler: <strong>${players.find(p=>p.id===state.dealerId)?.name||'?'}</strong></span>`;
+  ih+=trump?`<span>Troef: <strong>${SS[trump.suit]} ${SN[trump.suit]}</strong></span>`:`<span><strong>Geen troef</strong></span>`;
+  document.getElementById('bid-info').innerHTML=ih;
+
+  let othersHtml='';
+  for(let p of players){
+    if(p.id===myId)continue;
+    const isActive=p.id===currentBidderId;
+    const hasBid=bids[p.id]!==undefined;
+    othersHtml+=`<div class="other-player-card${isActive?' active-p':''}">
+      <div class="pname">${p.name}${isActive?' 🎯':''}</div>
+      <div style="font-size:12px;color:${hasBid?'#4CAF50':'#666'}">${hasBid?'Bod: '+bids[p.id]:'Biedt...'}</div>
+    </div>`;
+  }
+  document.getElementById('other-players-bid').innerHTML=othersHtml;
+
+  const myPanel=document.getElementById('bid-my-panel');
+  const myBid=bids[myId];
+  const myHand=(state.hands||{})[myId]||[];
+  const handHtml=myHand.map(c=>`<div class="c ${isRed(c)?'red':'blk'}">${SS[c.suit]}<span>${c.rank}</span></div>`).join('');
+
+  if(myBid!==undefined){
+    myPanel.innerHTML=`<div class="flex-row" style="margin-bottom:0.5rem">
+      <span class="tag green">Jouw bod: ${myBid}</span>
+      <span style="font-size:12px;color:#666">Wacht op anderen...</span>
+    </div>
+    <div class="hand-row">${handHtml}</div>`;
+  } else if(isMyTurn){
+    const bidSum=Object.values(bids).reduce((a,b)=>a+b,0);
+    const isLast=bidStep===bidOrder.length-1;
+    const forbidden=isLast?r.cards-bidSum:-1;
+    let btns='';
+    for(let b=0;b<=r.cards;b++){
+      const dis=b===forbidden?' disabled':'';
+      btns+=`<button class="bid-btn" onclick="placeBid(${b})"${dis}>${b}</button>`;
+    }
+    const hint=forbidden>=0&&forbidden<=r.cards?`<div style="font-size:11px;color:#888;margin-top:4px">Mag niet: ${forbidden}</div>`:'';
+    myPanel.innerHTML=`<div style="font-weight:600;margin-bottom:0.5rem;color:#4CAF50">🎯 Jij biedt!</div>
+    ${r.blind?'<p style="font-size:12px;color:#666;margin-bottom:0.5rem">Blind bieden — je ziet je kaarten na het bieden</p>':''}
+    ${!r.blind&&handHtml?`<div class="hand-row">${handHtml}</div>`:''}
+    <div class="flex-row" style="margin-top:0.5rem;gap:8px">${btns}</div>${hint}`;
+  } else {
+    myPanel.innerHTML=`<div style="color:#666;font-size:14px;margin-bottom:0.5rem">Wacht op ${players.find(p=>p.id===currentBidderId)?.name||'?'}...</div>
+    <div class="hand-row">${handHtml}</div>`;
+  }
+}
+
+window.placeBid=async function(val){
+  if(!localState||localState.phase!=='bid')return;
+  const bidOrder=localState.bidOrder||[];
+  const bidStep=localState.bidStep||0;
+  if(bidOrder[bidStep]!==myId)return;
+  sfx('sel');
+  const newStep=bidStep+1;
+  const updates={
+    [`games/${gameCode}/bids/${myId}`]:val,
+    [`games/${gameCode}/bidStep`]:newStep
+  };
+  if(newStep>=bidOrder.length){
+    updates[`games/${gameCode}/phase`]='play';
+    updates[`games/${gameCode}/currentTrick`]=[];
+    updates[`games/${gameCode}/currentPlayer`]=bidOrder[0];
+  }
+  await update(ref(db),updates);
+}
+
+function renderPlay(state){
+  showScreen('play-screen');
+  const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  const rounds=getRounds();
+  const r=rounds[state.roundIndex||0];
+  const trump=state.trump;
+  const bids=state.bids||{};
+  const slagsWon=state.slagsWon||{};
+  const currentTrick=state.currentTrick||[];
+  const currentPlayer=state.currentPlayer;
+  const showingTrick=state.showingTrick||false;
+  const leadSuit=currentTrick.length>0?currentTrick[0].card.suit:null;
+  const myHand=(state.hands||{})[myId]||[];
+
+  document.getElementById('play-title').textContent=
+    `Ronde ${(state.roundIndex||0)+1} — ${r.cards} kaart${r.cards>1?'en':''}${!r.trump?' (geen troef)':''}`;
+  let ih=`<span>Beurt: <strong>${players.find(p=>p.id===currentPlayer)?.name||'?'}</strong></span>`;
+  ih+=trump?`<span>Troef: <strong>${SS[trump.suit]}</strong></span>`:`<span><strong>Geen troef</strong></span>`;
+  const anyHand=(state.hands||{})[myId]||[];
+  const slagNr=r.cards-anyHand.length+(currentTrick.length>0?1:0);
+  ih+=`<span>Slag <strong>${Math.max(1,slagNr)}/${r.cards}</strong></span>`;
+  document.getElementById('play-info').innerHTML=ih;
+
+  // trick
+  let trickHtml='';
+  if(currentTrick.length>0){
+    for(let tc of currentTrick){
+      const pName=players.find(p=>p.id===tc.player)?.name||'?';
+      const col=isRed(tc.card)?'red':'blk';
+      trickHtml+=`<div class="trick-wrap">
+        <div class="trick-card ${col}">${SS[tc.card.suit]}<span>${tc.card.rank}</span></div>
+        <div class="trick-player-label">${pName}</div>
+      </div>`;
+    }
+  } else {
+    trickHtml=`<span style="font-size:12px;color:#444">Nog geen kaarten gespeeld</span>`;
+  }
+  document.getElementById('trick-area').innerHTML=trickHtml;
+
+  const statusEl=document.getElementById('status-msg');
+  if(showingTrick&&state.trickWinner){
+    statusEl.textContent=`🏆 ${players.find(p=>p.id===state.trickWinner)?.name||'?'} wint de slag!`;
+  } else {
+    statusEl.textContent=leadSuit?`Uitgespeelde kleur: ${SS[leadSuit]} ${SN[leadSuit]}`:'';
+  }
+
+  // other players
+  let othersHtml='';
+  for(let p of players){
+    if(p.id===myId)continue;
+    const isActive=p.id===currentPlayer&&!showingTrick;
+    const pHand=(state.hands||{})[p.id]||[];
+    othersHtml+=`<div class="other-player-card${isActive?' active-p':''}">
+      <div class="pname">${p.name}${isActive?' 🎯':''}</div>
+      <div style="font-size:11px;color:#666">Bod:${bids[p.id]??'?'} Sl:${slagsWon[p.id]||0} Kaarten:${pHand.length}</div>
+    </div>`;
+  }
+  document.getElementById('other-players-play').innerHTML=othersHtml;
+
+  // my panel
+  const isMyTurn=currentPlayer===myId&&!showingTrick;
+  let handHtml=myHand.map((c,ci)=>{
+    const can=isMyTurn&&isLegal(myHand,c,leadSuit);
+    const oc=can?`onclick="playCard(${ci})"`:' ';
+    return`<div class="c ${isRed(c)?'red':'blk'} ${can?'playable':'ill'}" ${oc}>${SS[c.suit]}<span>${c.rank}</span></div>`;
+  }).join('');
+
+  document.getElementById('play-my-panel').innerHTML=`<div class="flex-row" style="margin-bottom:0.5rem">
+    <strong style="color:#eee">Jij</strong>
+    <span class="tag">Bod: ${bids[myId]??'?'}</span>
+    <span class="tag">Slagen: ${slagsWon[myId]||0}</span>
+    ${isMyTurn?'<span class="tag green">Aan de beurt!</span>':''}
+  </div>
+  <div class="hand-row">${handHtml||'<span style="font-size:13px;color:#444">Geen kaarten meer</span>'}</div>`;
+}
+
+function isLegal(hand,card,leadSuit){
+  if(!leadSuit)return true;
+  return hand.some(c=>c.suit===leadSuit)?card.suit===leadSuit:true;
+}
+
+window.playCard=async function(ci){
+  if(!localState||localState.phase!=='play'||localState.showingTrick)return;
+  if(localState.currentPlayer!==myId)return;
+  const myHand=(localState.hands||{})[myId]||[];
+  const card=myHand[ci];
+  if(!card)return;
+  const currentTrick=localState.currentTrick||[];
+  const leadSuit=currentTrick.length>0?currentTrick[0].card.suit:null;
+  if(!isLegal(myHand,card,leadSuit)){alert('Je moet kleur bekennen!');return;}
+  sfx('play');
+  const newHand=[...myHand];newHand.splice(ci,1);
+  const newTrick=[...currentTrick,{player:myId,card}];
+  const players=Object.values(localState.players).sort((a,b)=>a.order-b.order);
+  const n=players.length;
+  const myIdx=players.findIndex(p=>p.id===myId);
+  const nextPlayer=players[(myIdx+1)%n].id;
+  const updates={
+    [`games/${gameCode}/hands/${myId}`]:newHand,
+    [`games/${gameCode}/currentTrick`]:newTrick,
+  };
+  if(newTrick.length===n){
+    const trump=localState.trump;
+    const lead=newTrick[0].card.suit;
+    const trumpSuit=trump?trump.suit:null;
+    let winner=newTrick[0];
+    for(let i=1;i<newTrick.length;i++)if(beats(newTrick[i].card,winner.card,lead,trumpSuit))winner=newTrick[i];
+    const newSlagsWon={...(localState.slagsWon||{})};
+    newSlagsWon[winner.player]=(newSlagsWon[winner.player]||0)+1;
+    updates[`games/${gameCode}/slagsWon`]=newSlagsWon;
+    updates[`games/${gameCode}/trickWinner`]=winner.player;
+    updates[`games/${gameCode}/showingTrick`]=true;
+    updates[`games/${gameCode}/currentPlayer`]=winner.player;
+    await update(ref(db),updates);
+    sfx('win');
+    setTimeout(async()=>{
+      const snap=await get(gameRef);
+      const st=snap.val();
+      const anyCards=Object.values(st.hands||{}).some(h=>h&&h.length>0);
+      if(!anyCards)await endRound(st);
+      else await update(gameRef,{currentTrick:[],showingTrick:false,trickWinner:null,currentPlayer:winner.player});
+    },3000);
+  } else {
+    updates[`games/${gameCode}/currentPlayer`]=nextPlayer;
+    await update(ref(db),updates);
+  }
+}
+
+function beats(c,a,lead,trump){
+  const cT=trump&&c.suit===trump,aT=trump&&a.suit===trump;
+  if(cT&&!aT)return true;if(!cT&&aT)return false;
+  if(c.suit===a.suit)return RV[c.rank]>RV[a.rank];
+  return false;
+}
+
+async function endRound(state){
+  const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  const slagsWon=state.slagsWon||{};
+  const bids=state.bids||{};
+  const updatedPlayers={};
+  for(let p of players){
+    const ok=(slagsWon[p.id]||0)===(bids[p.id]||0);
+    const newScores=[...(p.scores||[])];
+    const pts=ok?(bids[p.id]||0):0;
+    newScores.push({bid:bids[p.id]||0,won:slagsWon[p.id]||0,points:pts,bol:!ok});
+    updatedPlayers[p.id]={...p,bollen:p.bollen+(ok?0:1),totalCorrect:p.totalCorrect+(ok?bids[p.id]||0:0),scores:newScores};
+  }
+  const rounds=getRounds();
+  const nextRi=(state.roundIndex||0)+1;
+  const isLast=nextRi>=rounds.length;
+  await update(gameRef,{players:updatedPlayers,phase:isLast?'final':'score',scoreRoundIndex:state.roundIndex||0});
+}
+
+function renderScore(state){
+  showScreen('score-screen');
+  const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  const rounds=getRounds();
+  const totalRounds=(state.scoreRoundIndex||0)+1;
+  let html=`<table class="score-table"><thead><tr><th>Speler</th>`;
+  for(let ri=0;ri<totalRounds;ri++){
+    const r=rounds[ri];
+    html+=`<th>${r.blind?ri+1+'B':r.trump?ri+1:ri+1+'NT'}</th>`;
+  }
+  html+=`<th class="total">Bollen</th><th class="total">Ptn</th></tr></thead><tbody>`;
+  for(let p of players){
+    html+=`<tr><td>${p.name}</td>`;
+    for(let s of(p.scores||[])){
+      if(s.bol)html+=`<td class="bol-cell" onclick="this.classList.toggle('tip-open')"><span class="bol"></span><span class="bol-tooltip">Bod:${s.bid} Gehaald:${s.won}</span></td>`;
+      else html+=`<td>${s.points}</td>`;
+    }
+    html+=`<td class="total">${p.bollen}</td><td class="total">${p.totalCorrect}</td></tr>`;
+  }
+  html+=`</tbody></table>`;
+  document.getElementById('score-content').innerHTML=html;
+  const actEl=document.getElementById('score-actions');
+  if(myId===state.host){
+    actEl.innerHTML=`<button class="btn green" onclick="nextRound()">Volgende ronde ▶</button>`;
+  } else {
+    actEl.innerHTML=`<div class="status">Wacht op de host om door te gaan...</div>`;
+  }
+}
+
+window.nextRound=async function(){
+  if(!localState)return;
+  const players=Object.values(localState.players).sort((a,b)=>a.order-b.order);
+  const oldDealerIdx=players.findIndex(p=>p.id===localState.dealerId);
+  const newDealerId=players[(oldDealerIdx+1)%players.length].id;
+  const nextRi=(localState.roundIndex||0)+1;
+  await update(gameRef,{roundIndex:nextRi,phase:'draw',drawCards:{},drawContenders:players.map(p=>p.id),dealerId:newDealerId});
+}
+
+function renderFinal(state){
+  showScreen('final-screen');
+  const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  const maxB=Math.max(...players.map(p=>p.bollen));
+  const verliezaar=players.filter(p=>p.bollen===maxB).sort((a,b)=>a.totalCorrect-b.totalCorrect)[0];
+  document.getElementById('verliezaar-box').innerHTML=`
+    <div style="font-size:13px;color:#c0392b;margin-bottom:4px">En we noemen 'm</div>
+    <div class="verliezaar-naam">${verliezaar.name.toUpperCase()}</div>
+    <div style="font-size:13px;color:#c0392b;margin-top:6px">met ${verliezaar.bollen} bol${verliezaar.bollen!==1?'len':''}</div>`;
+  sfx('win');
+  const sorted=[...players].sort((a,b)=>a.bollen-b.bollen||b.totalCorrect-a.totalCorrect);
+  let html=`<table class="score-table"><thead><tr><th>Speler</th><th>Bollen</th><th>Punten</th></tr></thead><tbody>`;
+  for(let p of sorted){
+    const isV=p.id===verliezaar.id;
+    html+=`<tr${isV?' style="color:#e74c3c"':''}><td>${p.name}${isV?' (verliezaar)':''}</td><td>${p.bollen}</td><td>${p.totalCorrect}</td></tr>`;
+  }
+  html+=`</tbody></table>`;
+  document.getElementById('final-score-content').innerHTML=html;
+}
+</script>
+</body>
+</html>
