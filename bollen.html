@@ -168,7 +168,7 @@ const RED=['H','D'];
 const SUITS=['H','S','D','C'];
 // Suit order for sorting: H, D, C, S
 const SUIT_ORDER={H:0,D:1,C:2,S:3};
-const CW=28,CH=40;
+const CW=34,CH=48;
 
 let myId=null,myName=null,gameCode=null,gameRef=null,gameListener=null,localState=null;
 
@@ -298,11 +298,13 @@ function closedCardsSVG(cx,cy,count,angle){
 
 function playedCardSVG(x,y,card,rot){
   const col=isRed(card)?'#c0392b':'#111';
+  const rankFs=Math.round(CW*0.32);
+  const suitFs=Math.round(CW*0.52);
   return`<g transform="translate(${x},${y}) rotate(${rot||0})">
-    <rect x="${-CW/2}" y="${-CH/2}" width="${CW}" height="${CH}" rx="3" fill="white" stroke="#aaa" stroke-width="0.8"/>
-    <text x="${-CW/2+2}" y="${-CH/2+7}" font-size="6" font-weight="700" fill="${col}" dominant-baseline="hanging">${card.rank}</text>
-    <text x="0" y="2" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${col}">${SS[card.suit]}</text>
-    <text x="${CW/2-2}" y="${CH/2-1}" font-size="6" font-weight="700" fill="${col}" text-anchor="end" dominant-baseline="auto">${card.rank}</text>
+    <rect x="${-CW/2}" y="${-CH/2}" width="${CW}" height="${CH}" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+    <text x="${-CW/2+2}" y="${-CH/2+rankFs}" font-size="${rankFs}" font-weight="700" fill="${col}">${card.rank}</text>
+    <text x="0" y="${CH*0.08}" text-anchor="middle" dominant-baseline="middle" font-size="${suitFs}" fill="${col}">${SS[card.suit]}</text>
+    <text x="${CW/2-2}" y="${CH/2-2}" font-size="${rankFs}" font-weight="700" fill="${col}" text-anchor="end">${card.rank}</text>
   </g>`;
 }
 
@@ -335,7 +337,7 @@ function buildTableSVG(state,phase){
   const noTrumpLabel=(!trump&&r&&!r.trump)?
     `<text x="200" y="148" text-anchor="middle" font-size="9" fill="#555">geen troef</text>`:'';
 
-  const offs=[{dx:0,dy:-38},{dx:38,dy:0},{dx:0,dy:38},{dx:-38,dy:0},{dx:27,dy:-27},{dx:27,dy:27}];
+  const offs=[{dx:0,dy:-44},{dx:44,dy:0},{dx:0,dy:44},{dx:-44,dy:0},{dx:31,dy:-31},{dx:31,dy:31}];
   let trickSVG='';
   if(phase==='play'&&currentTrick.length>0){
     currentTrick.forEach(tc=>{
