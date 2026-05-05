@@ -194,74 +194,34 @@ function sfx(type){
   }catch(e){}
 }
 
-// Render a styled playing card as inline SVG
+// Render een speelkaart als klikbaar div element
 function cardSVG(c, opts={}){
-  const {clickable=false, onclick='', dimmed=false, highlight=false, width=52, height=74} = opts;
-  const col = isRed(c) ? '#b91c1c' : '#1a1a1a';
-  const bgCol = highlight ? '#f0fff4' : 'white';
-  const borderCol = highlight ? '#4CAF50' : (dimmed ? '#ccc' : '#aaa');
-  const shadow = highlight ? 'drop-shadow(0 0 6px rgba(76,175,80,0.5))' : (dimmed ? 'none' : 'drop-shadow(0 2px 3px rgba(0,0,0,0.15))');
-  const opacity = dimmed ? 0.25 : 1;
-  const isFace = ['J','Q','K','A'].includes(c.rank);
-  const sym = SS[c.suit];
-  const r = c.rank;
+  const {clickable=false, onclick='', dimmed=false, highlight=false, width=60, height=85} = opts;
+  const col = isRed(c) ? '#c0392b' : '#111';
+  const border = highlight ? '2px solid #4CAF50' : '1px solid #bbb';
+  const shadow = highlight ? '0 0 8px rgba(76,175,80,0.4)' : '0 2px 4px rgba(0,0,0,0.15)';
+  const opacity = dimmed ? 0.22 : 1;
   const cursor = clickable ? 'pointer' : 'default';
+  const onclickAttr = clickable && onclick ? `onclick="${onclick}"` : '';
 
-  // center decoration
-  let center = '';
-  if(c.rank==='A'){
-    center=`<text x="${width/2}" y="${height/2+8}" text-anchor="middle" font-size="${width*0.55}" fill="${col}" opacity="0.15">${sym}</text>
-    <text x="${width/2}" y="${height/2+6}" text-anchor="middle" font-size="${width*0.38}" fill="${col}">${sym}</text>`;
-  } else if(isFace){
-    // Face card: decorative background pattern + big letter
-    center=`<rect x="6" y="14" width="${width-12}" height="${height-28}" rx="3" fill="${col}" opacity="0.07"/>
-    <text x="${width/2}" y="${height/2+7}" text-anchor="middle" font-size="${width*0.48}" font-weight="700" fill="${col}" opacity="0.9" font-family="Georgia,serif">${r}</text>
-    <text x="${width/2}" y="${height/2+18}" text-anchor="middle" font-size="${width*0.28}" fill="${col}" opacity="0.6">${sym}</text>`;
-  } else {
-    // Pip cards: show suit symbols in a pattern
-    const n=parseInt(r);
-    const positions=pipPositions(n,width,height);
-    center=positions.map(([px,py,rot])=>`<text x="${px}" y="${py}" text-anchor="middle" font-size="${width*0.22}" fill="${col}" ${rot?`transform="rotate(180,${px},${py})"`:''}>${sym}</text>`).join('');
-  }
-
-  const onclickAttr = clickable&&onclick ? `onclick="${onclick}"` : '';
-  const transformAttr = clickable ? `style="cursor:${cursor};transition:transform 0.12s" ontouchstart="" ` : '';
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"
-    ${onclickAttr} ${transformAttr}
-    style="cursor:${cursor};opacity:${opacity};filter:${shadow};border-radius:6px;flex-shrink:0;display:inline-block;vertical-align:top">
-    <rect width="${width}" height="${height}" rx="5" fill="${bgCol}" stroke="${borderCol}" stroke-width="1.2"/>
-    <text x="3" y="11" font-size="${width*0.22}" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${r}</text>
-    <text x="3" y="20" font-size="${width*0.2}" fill="${col}" font-family="-apple-system,sans-serif">${sym}</text>
-    <text x="${width-3}" y="${height-3}" font-size="${width*0.22}" font-weight="700" fill="${col}" text-anchor="end" font-family="-apple-system,sans-serif" transform="rotate(180,${width-3},${height-6})">${r}</text>
-    ${center}
-  </svg>`;
-}
-
-function pipPositions(n,w,h){
-  const cx=w/2, t=h*0.22, m=h*0.5, b=h*0.78;
-  const l=w*0.28, r=w*0.72;
-  const mt=h*0.35, mb=h*0.65;
-  const maps={
-    2:[[cx,t,false],[cx,b,true]],
-    3:[[cx,t,false],[cx,m,false],[cx,b,true]],
-    4:[[l,t,false],[r,t,false],[l,b,true],[r,b,true]],
-    5:[[l,t,false],[r,t,false],[cx,m,false],[l,b,true],[r,b,true]],
-    6:[[l,t,false],[r,t,false],[l,m,false],[r,m,false],[l,b,true],[r,b,true]],
-    7:[[l,t,false],[r,t,false],[cx,mt,false],[l,m,false],[r,m,false],[l,b,true],[r,b,true]],
-    8:[[l,t,false],[r,t,false],[cx,mt,false],[l,m,false],[r,m,false],[cx,mb,true],[l,b,true],[r,b,true]],
-    9:[[l,t,false],[r,t,false],[l,mt,false],[r,mt,false],[cx,m,false],[l,mb,true],[r,mb,true],[l,b,true],[r,b,true]],
-    10:[[l,t,false],[r,t,false],[cx,t+8,false],[l,mt,false],[r,mt,false],[l,mb,true],[r,mb,true],[cx,b-8,true],[l,b,true],[r,b,true]],
-  };
-  return maps[n]||[[cx,m,false]];
+  return `<div ${onclickAttr} style="display:inline-flex;align-items:center;justify-content:center;
+    width:${width}px;height:${height}px;border-radius:7px;border:${border};
+    background:white;font-size:${Math.round(width*0.42)}px;font-weight:700;
+    flex-direction:column;gap:0;cursor:${cursor};
+    opacity:${opacity};box-shadow:${shadow};
+    flex-shrink:0;user-select:none;-webkit-tap-highlight-color:transparent;
+    transition:transform 0.12s" ${clickable?'ontouchstart=""':''}>
+    <span style="color:${col};line-height:1">${SS[c.suit]}</span>
+    <span style="color:${col};font-size:${Math.round(width*0.26)}px;font-weight:500;line-height:1.2">${c.rank}</span>
+  </div>`;
 }
 
 function closedCardSVG(width=20,height=30){
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="display:inline-block">
-    <rect width="${width}" height="${height}" rx="3" fill="#1e3a7a" stroke="#4a6aaa" stroke-width="0.8"/>
-    <rect x="2" y="2" width="${width-4}" height="${height-4}" rx="2" fill="none" stroke="#4a6aaa" stroke-width="0.5" stroke-dasharray="2,1"/>
-    <text x="${width/2}" y="${height/2+4}" text-anchor="middle" font-size="${width*0.55}" fill="#4a6aaa" opacity="0.5">♦</text>
-  </svg>`;
+  return `<div style="display:inline-flex;align-items:center;justify-content:center;
+    width:${width}px;height:${height}px;border-radius:5px;border:1px solid #4a6aaa;
+    background:#1e3a7a;font-size:${Math.round(width*0.5)}px;flex-shrink:0">
+    <span style="color:#4a6aaa;opacity:0.6">♦</span>
+  </div>`;
 }
 
 function makeDeck(){
@@ -510,7 +470,7 @@ function renderDraw(state){
     if(card){
       const isWin=winners.includes(p.id);
       const isLose=allDrawn&&inC&&!isWin;
-      cardHtml=cardSVG(card,{dimmed:isLose,highlight:isWin,width:44,height:63});
+      cardHtml=cardSVG(card,{dimmed:isLose,highlight:isWin,width:51,height:72});
     } else if(inC&&isMe){
       cardHtml=`<div onclick="drawMyCard()" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:63px;border-radius:7px;border:2px solid #4CAF50;background:#1e3a7a;font-size:24px;cursor:pointer;box-shadow:0 0 10px rgba(76,175,80,0.3)">?</div>`;
     } else {
@@ -606,7 +566,7 @@ function renderBid(state){
 
   // find original indices for playCard calls (must match unsorted hand in firebase)
   const handHtml=showMyCards
-    ? myHand.map(c=>cardSVG(c,{width:48,height:68})).join('')
+    ? myHand.map(c=>cardSVG(c,{width:55,height:78})).join('')
     : '';
 
   if(myBid!==undefined){
@@ -690,7 +650,7 @@ function renderPlay(state){
       onclick:can?`playCard(${origIdx})`:'',
       dimmed:!can&&isMyTurn,
       highlight:false,
-      width:52,height:74
+      width:60,height:85
     });
   }).join('');
 
