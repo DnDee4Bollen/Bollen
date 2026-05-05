@@ -19,6 +19,7 @@ h1{font-size:24px;font-weight:700;color:#4CAF50;text-align:center;margin-bottom:
 .btn.green{background:#2d6a2d;color:white}
 .btn.outline{background:transparent;color:#4CAF50;border:2px solid #4CAF50}
 .btn.gray{background:#333;color:#aaa;border:1px solid #444}
+.btn.red{background:#6a1010;color:#ffaaaa;border:1px solid #8B0000}
 .btn:disabled{opacity:0.35;cursor:not-allowed}
 input{width:100%;padding:13px;border:1px solid #444;border-radius:10px;font-size:18px;background:#1a1a2e;color:#eee;margin-bottom:0.75rem;text-align:center;letter-spacing:3px;outline:none}
 input:focus{border-color:#4CAF50}
@@ -31,14 +32,7 @@ label{font-size:13px;color:#777;display:block;margin-bottom:5px;text-align:left}
 .status{text-align:center;font-size:13px;color:#777;margin:0.5rem 0}
 .info-bar{background:#1a1a2e;border-radius:8px;padding:7px 10px;font-size:12px;color:#777;margin-bottom:0.4rem;display:flex;gap:10px;flex-wrap:wrap;border:1px solid #2a2a3e}
 .info-bar strong{color:#eee}
-.hand-row{display:flex;flex-wrap:wrap;gap:6px;margin:0.5rem 0}
-.c{display:inline-flex;align-items:center;justify-content:center;width:52px;height:74px;border-radius:8px;border:1px solid #444;background:#f8f8f8;font-size:22px;font-weight:700;flex-direction:column;gap:0;cursor:pointer;transition:transform 0.12s,border-color 0.12s,box-shadow 0.12s;user-select:none}
-.c span{font-size:12px;font-weight:500}
-.c:active{transform:translateY(-7px)}
-.c.ill{opacity:0.2;cursor:default;transform:none!important}
-.c.red{color:#c0392b}
-.c.blk{color:#111}
-.c.playable{border-color:#4CAF50;box-shadow:0 0 10px rgba(76,175,80,0.35)}
+.hand-row{display:flex;flex-wrap:wrap;gap:5px;margin:0.5rem 0}
 .bid-btn{width:54px;height:54px;border:2px solid #444;border-radius:10px;background:#1a1a2e;color:#eee;cursor:pointer;font-size:19px;font-weight:600;transition:background 0.1s,border-color 0.1s,box-shadow 0.1s}
 .bid-btn.selected{background:#2d6a2d;color:white;border-color:#4CAF50;box-shadow:0 0 0 3px rgba(76,175,80,0.3)}
 .bid-btn:disabled{opacity:0.25;cursor:not-allowed}
@@ -110,6 +104,7 @@ label{font-size:13px;color:#777;display:block;margin-bottom:5px;text-align:left}
     <div id="draw-area"></div>
     <div id="draw-status" class="status" style="min-height:22px;font-size:14px;font-weight:500;color:#4CAF50;margin-top:0.5rem"></div>
     <button class="btn outline" id="draw-retry-btn" onclick="retryDraw()" style="display:none;margin-top:0.5rem">Opnieuw trekken (gelijkspel)</button>
+    <div id="draw-stop-btn-wrap" style="display:none;margin-top:0.5rem"></div>
   </div>
 </div>
 
@@ -118,6 +113,7 @@ label{font-size:13px;color:#777;display:block;margin-bottom:5px;text-align:left}
   <div class="info-bar" id="bid-info"></div>
   <div id="table-svg-bid" style="width:100%;margin-bottom:0.4rem"></div>
   <div class="card-ui" id="bid-my-panel"></div>
+  <div id="bid-stop-btn-wrap"></div>
 </div>
 
 <div id="play-screen" class="screen">
@@ -126,6 +122,7 @@ label{font-size:13px;color:#777;display:block;margin-bottom:5px;text-align:left}
   <div id="table-svg-play" style="width:100%;margin-bottom:0.3rem"></div>
   <div style="font-size:13px;color:#4CAF50;min-height:18px;font-weight:500;margin-bottom:0.3rem" id="status-msg"></div>
   <div class="card-ui" id="play-my-panel"></div>
+  <div id="play-stop-btn-wrap"></div>
 </div>
 
 <div id="score-screen" class="screen">
@@ -163,15 +160,26 @@ const db = getDatabase(app);
 
 const SS={H:'♥',S:'♠',D:'♦',C:'♣'};
 const SN={H:'Harten',S:'Schoppen',D:'Ruiten',C:'Klaveren'};
+// Face card labels
+const FACE={J:'J',Q:'Q',K:'K',A:'A'};
 const RANKS=['7','8','9','10','J','Q','K','A'];
 const RV={'7':1,'8':2,'9':3,'10':4,'J':5,'Q':6,'K':7,'A':8};
 const RED=['H','D'];
 const SUITS=['H','S','D','C'];
+// Suit order for sorting: H, D, C, S
+const SUIT_ORDER={H:0,D:1,C:2,S:3};
 const CW=20,CH=30;
 
 let myId=null,myName=null,gameCode=null,gameRef=null,gameListener=null,localState=null;
 
 function isRed(c){return RED.includes(c.suit)}
+
+function sortHand(hand){
+  return [...hand].sort((a,b)=>{
+    if(SUIT_ORDER[a.suit]!==SUIT_ORDER[b.suit]) return SUIT_ORDER[a.suit]-SUIT_ORDER[b.suit];
+    return RV[b.rank]-RV[a.rank]; // hoog naar laag
+  });
+}
 
 function sfx(type){
   try{
@@ -186,6 +194,76 @@ function sfx(type){
   }catch(e){}
 }
 
+// Render a styled playing card as inline SVG
+function cardSVG(c, opts={}){
+  const {clickable=false, onclick='', dimmed=false, highlight=false, width=52, height=74} = opts;
+  const col = isRed(c) ? '#b91c1c' : '#1a1a1a';
+  const bgCol = highlight ? '#f0fff4' : 'white';
+  const borderCol = highlight ? '#4CAF50' : (dimmed ? '#ccc' : '#aaa');
+  const shadow = highlight ? 'drop-shadow(0 0 6px rgba(76,175,80,0.5))' : (dimmed ? 'none' : 'drop-shadow(0 2px 3px rgba(0,0,0,0.15))');
+  const opacity = dimmed ? 0.25 : 1;
+  const isFace = ['J','Q','K','A'].includes(c.rank);
+  const sym = SS[c.suit];
+  const r = c.rank;
+  const cursor = clickable ? 'pointer' : 'default';
+
+  // center decoration
+  let center = '';
+  if(c.rank==='A'){
+    center=`<text x="${width/2}" y="${height/2+8}" text-anchor="middle" font-size="${width*0.55}" fill="${col}" opacity="0.15">${sym}</text>
+    <text x="${width/2}" y="${height/2+6}" text-anchor="middle" font-size="${width*0.38}" fill="${col}">${sym}</text>`;
+  } else if(isFace){
+    // Face card: decorative background pattern + big letter
+    center=`<rect x="6" y="14" width="${width-12}" height="${height-28}" rx="3" fill="${col}" opacity="0.07"/>
+    <text x="${width/2}" y="${height/2+7}" text-anchor="middle" font-size="${width*0.48}" font-weight="700" fill="${col}" opacity="0.9" font-family="Georgia,serif">${r}</text>
+    <text x="${width/2}" y="${height/2+18}" text-anchor="middle" font-size="${width*0.28}" fill="${col}" opacity="0.6">${sym}</text>`;
+  } else {
+    // Pip cards: show suit symbols in a pattern
+    const n=parseInt(r);
+    const positions=pipPositions(n,width,height);
+    center=positions.map(([px,py,rot])=>`<text x="${px}" y="${py}" text-anchor="middle" font-size="${width*0.22}" fill="${col}" ${rot?`transform="rotate(180,${px},${py})"`:''}>${sym}</text>`).join('');
+  }
+
+  const onclickAttr = clickable&&onclick ? `onclick="${onclick}"` : '';
+  const transformAttr = clickable ? `style="cursor:${cursor};transition:transform 0.12s" ontouchstart="" ` : '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"
+    ${onclickAttr} ${transformAttr}
+    style="cursor:${cursor};opacity:${opacity};filter:${shadow};border-radius:6px;flex-shrink:0;display:inline-block;vertical-align:top">
+    <rect width="${width}" height="${height}" rx="5" fill="${bgCol}" stroke="${borderCol}" stroke-width="1.2"/>
+    <text x="3" y="11" font-size="${width*0.22}" font-weight="700" fill="${col}" font-family="-apple-system,sans-serif">${r}</text>
+    <text x="3" y="20" font-size="${width*0.2}" fill="${col}" font-family="-apple-system,sans-serif">${sym}</text>
+    <text x="${width-3}" y="${height-3}" font-size="${width*0.22}" font-weight="700" fill="${col}" text-anchor="end" font-family="-apple-system,sans-serif" transform="rotate(180,${width-3},${height-6})">${r}</text>
+    ${center}
+  </svg>`;
+}
+
+function pipPositions(n,w,h){
+  const cx=w/2, t=h*0.22, m=h*0.5, b=h*0.78;
+  const l=w*0.28, r=w*0.72;
+  const mt=h*0.35, mb=h*0.65;
+  const maps={
+    2:[[cx,t,false],[cx,b,true]],
+    3:[[cx,t,false],[cx,m,false],[cx,b,true]],
+    4:[[l,t,false],[r,t,false],[l,b,true],[r,b,true]],
+    5:[[l,t,false],[r,t,false],[cx,m,false],[l,b,true],[r,b,true]],
+    6:[[l,t,false],[r,t,false],[l,m,false],[r,m,false],[l,b,true],[r,b,true]],
+    7:[[l,t,false],[r,t,false],[cx,mt,false],[l,m,false],[r,m,false],[l,b,true],[r,b,true]],
+    8:[[l,t,false],[r,t,false],[cx,mt,false],[l,m,false],[r,m,false],[cx,mb,true],[l,b,true],[r,b,true]],
+    9:[[l,t,false],[r,t,false],[l,mt,false],[r,mt,false],[cx,m,false],[l,mb,true],[r,mb,true],[l,b,true],[r,b,true]],
+    10:[[l,t,false],[r,t,false],[cx,t+8,false],[l,mt,false],[r,mt,false],[l,mb,true],[r,mb,true],[cx,b-8,true],[l,b,true],[r,b,true]],
+  };
+  return maps[n]||[[cx,m,false]];
+}
+
+function closedCardSVG(width=20,height=30){
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="display:inline-block">
+    <rect width="${width}" height="${height}" rx="3" fill="#1e3a7a" stroke="#4a6aaa" stroke-width="0.8"/>
+    <rect x="2" y="2" width="${width-4}" height="${height-4}" rx="2" fill="none" stroke="#4a6aaa" stroke-width="0.5" stroke-dasharray="2,1"/>
+    <text x="${width/2}" y="${height/2+4}" text-anchor="middle" font-size="${width*0.55}" fill="#4a6aaa" opacity="0.5">♦</text>
+  </svg>`;
+}
+
 function makeDeck(){
   let d=[];
   for(let s of SUITS)for(let r of RANKS)d.push({suit:s,rank:r});
@@ -193,8 +271,6 @@ function makeDeck(){
   return d;
 }
 
-// Rondes: 1,2,3,4,5,5ZT,5B,4,3,2,1
-// label, cards, trump, blind
 function getRounds(){
   return [
     {label:'1',  cards:1,trump:true, blind:false},
@@ -220,9 +296,23 @@ window.showScreen=function(id){
   window.scrollTo(0,0);
 }
 
+function stopBtn(){
+  return `<button class="btn red" style="margin-top:0.5rem" onclick="confirmStop()">⏹ Spel beëindigen</button>`;
+}
+
+window.confirmStop=function(){
+  if(confirm('Weet je zeker dat je het spel wilt beëindigen? Dit kan niet ongedaan worden gemaakt.')){
+    stopGame();
+  }
+}
+
+window.stopGame=async function(){
+  if(!gameRef)return;
+  await update(gameRef,{phase:'final'});
+}
+
 // ---- TAFEL SVG ----
 function playerPos(n){
-  // Tafel iets lager in viewbox zodat niets wegvalt
   const cx=200,cy=148,rx=148,ry=100;
   let pos=[];
   for(let i=0;i<n;i++){
@@ -239,29 +329,30 @@ function closedCardsSVG(cx,cy,count,angle){
   for(let i=0;i<num;i++){
     let off=(i-(num-1)/2)*6;
     svg+=`<g transform="translate(${cx},${cy}) rotate(${rot})">
-      <rect x="${-CW/2+off}" y="${-CH-16}" width="${CW}" height="${CH}" rx="3" fill="#1a3a6e" stroke="#8899bb" stroke-width="0.7"/>
-      <rect x="${-CW/2+off+2}" y="${-CH-14}" width="${CW-4}" height="${CH-4}" rx="2" fill="none" stroke="#8899bb" stroke-width="0.4"/>
+      <rect x="${-CW/2+off}" y="${-CH-16}" width="${CW}" height="${CH}" rx="3" fill="#1e3a7a" stroke="#4a6aaa" stroke-width="0.7"/>
+      <rect x="${-CW/2+off+2}" y="${-CH-14}" width="${CW-4}" height="${CH-4}" rx="2" fill="none" stroke="#4a6aaa" stroke-width="0.4"/>
     </g>`;
   }
   return svg;
 }
 
 function playedCardSVG(x,y,card,rot){
-  const col=isRed(card)?'#c0392b':'#111';
+  const col=isRed(card)?'#b91c1c':'#1a1a1a';
   return`<g transform="translate(${x},${y}) rotate(${rot||0})">
-    <rect x="${-CW/2}" y="${-CH/2}" width="${CW}" height="${CH}" rx="3" fill="white" stroke="#999" stroke-width="0.8"/>
-    <text x="0" y="-4" text-anchor="middle" font-size="11" fill="${col}">${SS[card.suit]}</text>
-    <text x="0" y="9" text-anchor="middle" font-size="9" font-weight="500" fill="${col}">${card.rank}</text>
+    <rect x="${-CW/2}" y="${-CH/2}" width="${CW}" height="${CH}" rx="3" fill="white" stroke="#aaa" stroke-width="0.8"/>
+    <text x="${-CW/2+2}" y="${-CH/2+8}" font-size="7" font-weight="700" fill="${col}">${card.rank}</text>
+    <text x="0" y="3" text-anchor="middle" font-size="11" fill="${col}">${SS[card.suit]}</text>
+    <text x="${-CW/2+2}" y="${-CH/2+8}" font-size="7" font-weight="700" fill="${col}" transform="rotate(180,0,0)" dx="${CW-4}" dy="${CH-4}">${card.rank}</text>
   </g>`;
 }
 
 function trumpCornerSVG(trump){
   if(!trump)return'';
-  const col=isRed(trump)?'#c0392b':'#111';
+  const col=isRed(trump)?'#b91c1c':'#1a1a1a';
   const tx=343,ty=18;
   return`<rect x="${tx}" y="${ty}" width="${CW+6}" height="${CH+6}" rx="3" fill="white" stroke="#4CAF50" stroke-width="1.2"/>
-    <text x="${tx+(CW+6)/2}" y="${ty+13}" text-anchor="middle" font-size="12" fill="${col}">${SS[trump.suit]}</text>
-    <text x="${tx+(CW+6)/2}" y="${ty+25}" text-anchor="middle" font-size="9" font-weight="500" fill="${col}">${trump.rank}</text>
+    <text x="${tx+2}" y="${ty+9}" font-size="7" font-weight="700" fill="${col}">${trump.rank}</text>
+    <text x="${tx+(CW+6)/2}" y="${ty+21}" text-anchor="middle" font-size="13" fill="${col}">${SS[trump.suit]}</text>
     <text x="${tx+(CW+6)/2}" y="${ty-3}" text-anchor="middle" font-size="7" fill="#4CAF50">troef</text>`;
 }
 
@@ -417,14 +508,13 @@ function renderDraw(state){
     const isMe=p.id===myId;
     let cardHtml='';
     if(card){
-      const col=isRed(card)?'#c0392b':'#111';
       const isWin=winners.includes(p.id);
       const isLose=allDrawn&&inC&&!isWin;
-      cardHtml=`<div style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:66px;border-radius:7px;border:2px solid ${isWin?'#4CAF50':'#444'};background:${isWin?'#1e3a1e':'white'};font-size:20px;font-weight:700;flex-direction:column;opacity:${isLose?0.3:1};color:${col}">${SS[card.suit]}<span style="font-size:11px">${card.rank}</span></div>`;
+      cardHtml=cardSVG(card,{dimmed:isLose,highlight:isWin,width:44,height:63});
     } else if(inC&&isMe){
-      cardHtml=`<div onclick="drawMyCard()" style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:66px;border-radius:7px;border:2px solid #4CAF50;background:#1a3a6e;font-size:24px;cursor:pointer;box-shadow:0 0 10px rgba(76,175,80,0.3)">?</div>`;
+      cardHtml=`<div onclick="drawMyCard()" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:63px;border-radius:7px;border:2px solid #4CAF50;background:#1e3a7a;font-size:24px;cursor:pointer;box-shadow:0 0 10px rgba(76,175,80,0.3)">?</div>`;
     } else {
-      cardHtml=`<div style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:66px;border-radius:7px;border:1px solid #333;background:${inC?'#1a3a6e':'#1a1a1a'};font-size:20px;opacity:${inC?0.7:0.25}">${inC?'?':'—'}</div>`;
+      cardHtml=closedCardSVG(44,63);
     }
     const lbl=card?`${SS[card.suit]} ${card.rank}`:inC?(isMe?'Tik om te trekken':'Wacht...'):'—';
     html+=`<div class="draw-row"><div style="font-size:14px;font-weight:500;min-width:80px;color:#eee">${p.name}</div>${cardHtml}<div style="font-size:12px;color:#666;flex:1">${lbl}</div></div>`;
@@ -444,6 +534,9 @@ function renderDraw(state){
       if(myId===localState.host)retryBtn.style.display='block';
     }
   } else {statusEl.textContent='';}
+  // Stop knop voor host
+  const stopWrap=document.getElementById('draw-stop-btn-wrap');
+  if(stopWrap) stopWrap.innerHTML=myId===state.host?stopBtn():'';
 }
 
 window.drawMyCard=async function(){
@@ -451,8 +544,7 @@ window.drawMyCard=async function(){
   const contenders=localState.drawContenders||[];
   if(!contenders.includes(myId))return;
   if(localState.drawCards&&localState.drawCards[myId])return;
-  const deck=makeDeck();
-  sfx('draw');
+  const deck=makeDeck();sfx('draw');
   await update(ref(db,`games/${gameCode}/drawCards`),{[myId]:deck[Math.floor(Math.random()*deck.length)]});
 }
 
@@ -498,7 +590,6 @@ function renderBid(state){
   const currentBidderId=bidOrder[bidStep];
   const isMyTurn=currentBidderId===myId;
   const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
-  const myBidIndex=bidOrder.indexOf(myId); // mijn positie in de biedvolgorde
 
   document.getElementById('bid-title').textContent=
     `Ronde ${r.label} — ${r.cards} kaart${r.cards>1?'en':''}${!r.trump?' (geen troef)':''}${r.blind?' — BLIND':''}`;
@@ -509,17 +600,18 @@ function renderBid(state){
 
   const myPanel=document.getElementById('bid-my-panel');
   const myBid=bids[myId];
-  const myHand=(state.hands||{})[myId]||[];
-
-  // Bij blind bieden: toon kaarten alleen als jij al geboden hebt
+  const rawHand=(state.hands||{})[myId]||[];
+  const myHand=sortHand(rawHand);
   const showMyCards=!r.blind||(myBid!==undefined);
+
+  // find original indices for playCard calls (must match unsorted hand in firebase)
   const handHtml=showMyCards
-    ? myHand.map(c=>`<div class="c ${isRed(c)?'red':'blk'}">${SS[c.suit]}<span>${c.rank}</span></div>`).join('')
+    ? myHand.map(c=>cardSVG(c,{width:48,height:68})).join('')
     : '';
 
   if(myBid!==undefined){
     myPanel.innerHTML=`<div class="flex-row" style="margin-bottom:0.4rem"><span class="tag green">Jouw bod: ${myBid}</span><span style="font-size:12px;color:#666">Wacht op anderen...</span></div>
-    <div class="hand-row">${handHtml}</div>`;
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin:0.5rem 0">${handHtml}</div>`;
   } else if(isMyTurn){
     const bidSum=Object.values(bids).reduce((a,b)=>a+b,0);
     const isLast=bidStep===bidOrder.length-1;
@@ -529,13 +621,16 @@ function renderBid(state){
     const hint=forbidden>=0&&forbidden<=r.cards?`<div style="font-size:11px;color:#888;margin-top:4px">Mag niet bieden: ${forbidden}</div>`:'';
     myPanel.innerHTML=`<div style="font-weight:600;margin-bottom:0.5rem;color:#4CAF50">🎯 Jij biedt!</div>
     ${r.blind?'<p style="font-size:12px;color:#666;margin-bottom:0.5rem">Blind bieden — je ziet je kaarten na het bieden</p>':''}
-    ${showMyCards&&handHtml?`<div class="hand-row">${handHtml}</div>`:''}
+    ${showMyCards&&handHtml?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.5rem">${handHtml}</div>`:''}
     <div class="flex-row" style="margin-top:0.5rem;gap:8px">${btns}</div>${hint}`;
   } else {
-    // Wacht op iemand anders — toon eigen kaarten alleen als blind bieden al voorbij is voor mij
     myPanel.innerHTML=`<div style="color:#666;font-size:13px;margin-bottom:0.4rem">Wacht op ${players.find(p=>p.id===currentBidderId)?.name||'?'}...</div>
-    ${showMyCards&&handHtml?`<div class="hand-row">${handHtml}</div>`:'<p style="font-size:12px;color:#555;margin:0.5rem 0">Kaarten zichtbaar na jouw bod</p>'}`;
+    ${showMyCards&&handHtml?`<div style="display:flex;flex-wrap:wrap;gap:5px">${handHtml}</div>`:'<p style="font-size:12px;color:#555;margin:0.5rem 0">Kaarten zichtbaar na jouw bod</p>'}`;
   }
+
+  // Stop knop
+  const sw=document.getElementById('bid-stop-btn-wrap');
+  if(sw) sw.innerHTML=myId===state.host?stopBtn():'';
 }
 
 window.placeBid=async function(val){
@@ -566,13 +661,14 @@ function renderPlay(state){
   const currentPlayer=state.currentPlayer;
   const showingTrick=state.showingTrick||false;
   const leadSuit=currentTrick.length>0?currentTrick[0].card.suit:null;
-  const myHand=(state.hands||{})[myId]||[];
+  const rawHand=(state.hands||{})[myId]||[];
+  const myHand=sortHand(rawHand);
 
   document.getElementById('play-title').textContent=
     `Ronde ${r.label} — ${r.cards} kaart${r.cards>1?'en':''}${!r.trump?' (geen troef)':''}`;
   let ih=`<span>Beurt: <strong>${players.find(p=>p.id===currentPlayer)?.name||'?'}</strong></span>`;
   ih+=trump?`<span>Troef: <strong>${SS[trump.suit]}</strong></span>`:`<span><strong>Geen troef</strong></span>`;
-  const slagNr=r.cards-myHand.length+(currentTrick.length>0?1:0);
+  const slagNr=r.cards-rawHand.length+(currentTrick.length>0?1:0);
   ih+=`<span>Slag <strong>${Math.max(1,slagNr)}/${r.cards}</strong></span>`;
   document.getElementById('play-info').innerHTML=ih;
   document.getElementById('table-svg-play').innerHTML=buildTableSVG(state,'play');
@@ -585,10 +681,17 @@ function renderPlay(state){
   }
 
   const isMyTurn=currentPlayer===myId&&!showingTrick;
-  let handHtml=myHand.map((c,ci)=>{
-    const can=isMyTurn&&isLegal(myHand,c,leadSuit);
-    const oc=can?`onclick="playCard(${ci})"`:' ';
-    return`<div class="c ${isRed(c)?'red':'blk'} ${can?'playable':'ill'}" ${oc}>${SS[c.suit]}<span>${c.rank}</span></div>`;
+  // render sorted hand; find original index in rawHand for firebase update
+  let handHtml=myHand.map(sc=>{
+    const origIdx=rawHand.findIndex(c=>c.suit===sc.suit&&c.rank===sc.rank);
+    const can=isMyTurn&&isLegal(rawHand,sc,leadSuit);
+    return cardSVG(sc,{
+      clickable:can,
+      onclick:can?`playCard(${origIdx})`:'',
+      dimmed:!can&&isMyTurn,
+      highlight:false,
+      width:52,height:74
+    });
   }).join('');
 
   document.getElementById('play-my-panel').innerHTML=`<div class="flex-row" style="margin-bottom:0.4rem">
@@ -597,7 +700,11 @@ function renderPlay(state){
     <span class="tag">Slagen: ${slagsWon[myId]||0}</span>
     ${isMyTurn?'<span class="tag green">Aan de beurt!</span>':''}
   </div>
-  <div class="hand-row">${handHtml||'<span style="font-size:13px;color:#444">Geen kaarten meer</span>'}</div>`;
+  <div style="display:flex;flex-wrap:wrap;gap:5px">${handHtml||'<span style="font-size:13px;color:#444">Geen kaarten meer</span>'}</div>`;
+
+  // Stop knop
+  const sw=document.getElementById('play-stop-btn-wrap');
+  if(sw) sw.innerHTML=myId===state.host?stopBtn():'';
 }
 
 function isLegal(hand,card,leadSuit){
@@ -675,9 +782,7 @@ function renderScore(state){
   const rounds=getRounds();
   const totalRounds=(state.scoreRoundIndex||0)+1;
   let html=`<table class="score-table"><thead><tr><th>Speler</th>`;
-  for(let ri=0;ri<totalRounds;ri++){
-    html+=`<th>${rounds[ri].label}</th>`;
-  }
+  for(let ri=0;ri<totalRounds;ri++) html+=`<th>${rounds[ri].label}</th>`;
   html+=`<th class="total">Bollen</th><th class="total">Ptn</th></tr></thead><tbody>`;
   for(let p of players){
     html+=`<tr><td>${p.name}</td>`;
@@ -691,7 +796,7 @@ function renderScore(state){
   document.getElementById('score-content').innerHTML=html;
   const actEl=document.getElementById('score-actions');
   if(myId===state.host){
-    actEl.innerHTML=`<button class="btn green" onclick="nextRound()">Volgende ronde ▶</button>`;
+    actEl.innerHTML=`<button class="btn green" onclick="nextRound()">Volgende ronde ▶</button>${stopBtn()}`;
   } else {
     actEl.innerHTML=`<div class="status">Wacht op de host om door te gaan...</div>`;
   }
@@ -703,13 +808,13 @@ window.nextRound=async function(){
   const oldDealerIdx=players.findIndex(p=>p.id===localState.dealerId);
   const newDealerId=players[(oldDealerIdx+1)%players.length].id;
   const nextRi=(localState.roundIndex||0)+1;
-  const stateForNext={...localState,roundIndex:nextRi,dealerId:newDealerId};
-  await initRound(stateForNext,newDealerId);
+  await initRound({...localState,roundIndex:nextRi,dealerId:newDealerId},newDealerId);
 }
 
 function renderFinal(state){
   showScreen('final-screen');
   const players=Object.values(state.players).sort((a,b)=>a.order-b.order);
+  if(!players.length)return;
   const maxB=Math.max(...players.map(p=>p.bollen));
   const verliezaar=players.filter(p=>p.bollen===maxB).sort((a,b)=>a.totalCorrect-b.totalCorrect)[0];
   document.getElementById('verliezaar-box').innerHTML=`
