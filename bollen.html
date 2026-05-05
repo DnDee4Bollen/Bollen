@@ -297,12 +297,12 @@ function closedCardsSVG(cx,cy,count,angle){
 }
 
 function playedCardSVG(x,y,card,rot){
-  const col=isRed(card)?'#b91c1c':'#1a1a1a';
+  const col=isRed(card)?'#c0392b':'#111';
   return`<g transform="translate(${x},${y}) rotate(${rot||0})">
     <rect x="${-CW/2}" y="${-CH/2}" width="${CW}" height="${CH}" rx="3" fill="white" stroke="#aaa" stroke-width="0.8"/>
-    <text x="${-CW/2+2}" y="${-CH/2+8}" font-size="7" font-weight="700" fill="${col}">${card.rank}</text>
-    <text x="0" y="3" text-anchor="middle" font-size="11" fill="${col}">${SS[card.suit]}</text>
-    <text x="${-CW/2+2}" y="${-CH/2+8}" font-size="7" font-weight="700" fill="${col}" transform="rotate(180,0,0)" dx="${CW-4}" dy="${CH-4}">${card.rank}</text>
+    <text x="${-CW/2+2}" y="${-CH/2+7}" font-size="6" font-weight="700" fill="${col}" dominant-baseline="hanging">${card.rank}</text>
+    <text x="0" y="2" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${col}">${SS[card.suit]}</text>
+    <text x="${CW/2-2}" y="${CH/2-1}" font-size="6" font-weight="700" fill="${col}" text-anchor="end" dominant-baseline="auto">${card.rank}</text>
   </g>`;
 }
 
